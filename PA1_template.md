@@ -61,16 +61,31 @@ library(reshape2)
 ##     dcast, melt
 ```
 
+```r
+library(zoo)
+```
+
+```
+## 
+## Attaching package: 'zoo'
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     as.Date, as.Date.numeric
+```
+
 
 ## Loading and preprocessing the data
 
 ```r
 setwd("C:/Users/R/OneDrive/coursera/reproducibleResearch/week1Assignment")
 
-if(!exists("activity")){
+#if(!exists("activity")){
    # unzip("activity.zip")
   activity<- read.csv("activity.csv")
-}
+#}
 
 activity$date<-ymd(as.character(activity$date))
 ```
@@ -99,6 +114,10 @@ activityByDay.melt<- melt(activityByDay[,c(1:3)], id.vars="date",variable.name =
 MeanAndMediumADay <-ggplot(data=activityByDay.melt,aes(date,steps,col=Aggregate)) + geom_point(alpha=0.3) + scale_color_manual(values = c("steps-Mean" = 'red','steps-Median' = 'blue')) 
    
 print(MeanAndMediumADay)
+```
+
+```
+## Warning: Removed 16 rows containing missing values (geom_point).
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-3-2.png)
@@ -138,8 +157,6 @@ maxInterval
 
 ```r
 NumberOfNA <- sum(is.na(activity$steps))
-datesNa<- sum(is.na(activity$date))
-
 NumberOfNA
 ```
 
@@ -148,11 +165,69 @@ NumberOfNA
 ```
 
 ```r
-datesNa
+activity$steps<-na.locf(activity$steps,na.rm = F,fromLast = F, rule=2)
+activity$steps<-na.locf(activity$steps,na.rm = F,fromLast = T,rule=2)
+NumberOfNA_afterReplacement <- sum(is.na(activity$steps))
+NumberOfNA_afterReplacement
 ```
 
 ```
 ## [1] 0
+```
+
+```r
+activityByDayNoNA<- group_by(activity[,c(1:2)],date) %>%summarise(median(steps[steps>0]),
+                                                              mean(steps[steps>0]),
+                                                              sum(steps))
+
+names(activityByDayNoNA)<-c("date","steps-Mean2","steps-Median2","steps2")
+
+totalStepsaDay <- ggplot(activityByDayNoNA, aes(x=date, weights=steps2)) + 
+  geom_bar()+labs(y="total of steps a day")
+print(totalStepsaDay)
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)
+
+```r
+activityByDayNoNA.melt<- melt(activityByDayNoNA[,c(1:3)], id.vars="date",variable.name ="Aggregate", value.name="steps2")
+
+MeanAndMediumADay <-ggplot(data=activityByDayNoNA.melt,aes(date,steps2,col=Aggregate)) + geom_point(alpha=0.3) + scale_color_manual(values = c("steps-Mean2" = 'red','steps-Median2' = 'blue')) 
+   
+print(MeanAndMediumADay)
+```
+
+```
+## Warning: Removed 16 rows containing missing values (geom_point).
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-5-2.png)
+
+```r
+averages_With_Na_replaced<-summarise_each(activityByDayNoNA[complete.cases(activityByDayNoNA),][,c(-1)],funs(mean))
+averages_With_Na_not_replaced<-summarise_each(activityByDay[complete.cases(activityByDay),][,c(-1)],funs(mean))
+
+averages_With_Na_not_replaced
+```
+
+```
+## Source: local data frame [1 x 3]
+## 
+##   steps-Mean steps-Median    steps
+##        (dbl)        (dbl)    (dbl)
+## 1    56.5566     129.7411 10766.19
+```
+
+```r
+averages_With_Na_replaced
+```
+
+```
+## Source: local data frame [1 x 3]
+## 
+##   steps-Mean2 steps-Median2   steps2
+##         (dbl)         (dbl)    (dbl)
+## 1     56.5566      129.7411 10766.19
 ```
 
 
