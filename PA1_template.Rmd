@@ -23,41 +23,53 @@ if(!exists("activity")){
    # unzip("activity.zip")
   activity<- read.csv("activity.csv")
 }
-activity<-activity[complete.cases(activity),]
-activity$date<-ymd(as.character(activity$date))
 
+activity$date<-ymd(as.character(activity$date))
 ```
 
 
-## What is mean total number of steps taken per day?
+## What is mean total number of steps taken per day?  
+(ignored for median and mean values of 0)
 ```{r cache=TRUE}
-activityByDay<-activity[complete.cases(activity),]
-activityByDay<- group_by(activity[,c(1:2)],date) %>%summarise(sum(steps,na.rm = TRUE),
-                                                              mean(steps[steps>0],na.rm = TRUE),
-                                                              median(steps[steps>0],na.rm=TRUE))
+activityByDay<- group_by(activity[,c(1:2)],date) %>%summarise(median(steps[steps>0]),
+                                                              mean(steps[steps>0]),
+                                                              sum(steps))
 
-names(activityByDay)<-c("date","steps","stepsMean","stepsMedian")
+names(activityByDay)<-c("date","steps-Mean","steps-Median","steps")
 
 totalStepsaDay <- ggplot(activityByDay, aes(x=date, weights=steps)) + 
   geom_bar()+labs(y="total of steps a day")
 print(totalStepsaDay)
 
-#activityByDay.melt<- melt(activityByDay, id.vars="date", variable.name = "aggregate", value.name = "Steps"
+activityByDay.melt<- melt(activityByDay[,c(1:3)], id.vars="date",variable.name ="Aggregate", value.name="steps")
 
-MeanAndMediumADay <-ggplot(data=activityByDay,aes(date,stepsMean)) + geom_point(alpha=.4,color="red") +
-                     geom_point(aes(date,stepsMedian),alpha=.3,color="blue") + labs(y="steps") 
+MeanAndMediumADay <-ggplot(data=activityByDay.melt,aes(date,steps,col=Aggregate)) + geom_point(alpha=0.3) + scale_color_manual(values = c("steps-Mean" = 'red','steps-Median' = 'blue')) 
    
-                   
 print(MeanAndMediumADay)
 ```   
 
 
 ## What is the average daily activity pattern?
+```{r cache=TRUE}
+activityByInterval<- group_by(activity[,-2],interval) %>%summarise(mean(steps[steps>0],na.rm=TRUE))
+names(activityByInterval)<- c("interval", "stepMean")
+ 
+IntervalMean <- ggplot(data=activityByInterval,aes(x=interval,y=stepMean)) + geom_point(alpha=.3)
+print(IntervalMean)
 
+maxInterval <- filter(activityByInterval,stepMean==max(activityByInterval$stepMean, na.rm = TRUE))
+maxInterval
+```
 
 
 ## Imputing missing values
+```{r cache=TRUE}
+NumberOfNA <- sum(is.na(activity$steps))
+datesNa<- sum(is.na(activity$date))
 
+NumberOfNA
+datesNa
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
