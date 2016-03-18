@@ -91,15 +91,15 @@ activity$date<-ymd(as.character(activity$date))
 ```
 
 
-## What is mean total number of steps taken per day?  
-(ignored for median and mean values of 0)
+## What is mean total number of steps taken per day? 
+First see a histogram which shows the day totals of steps, then see a time serie showing the mean and medium of each day. For calculating the day mean and median I ignored values of 0, not stepping should not affect stepping averages I assumed.
 
 ```r
 activityByDay<- group_by(activity[,c(1:2)],date) %>%summarise(median(steps[steps>0]),
                                                               mean(steps[steps>0]),
                                                               sum(steps))
 
-names(activityByDay)<-c("date","steps-Mean","steps-Median","steps")
+names(activityByDay)<-c("date","steps-Median","steps-Mean","steps")
 
 totalStepsaDay <- ggplot(activityByDay, aes(x=date, weights=steps)) + 
   geom_bar()+labs(y="total of steps a day")
@@ -124,6 +124,7 @@ print(MeanAndMediumADay)
 
 
 ## What is the average daily activity pattern?
+See below the time serie of the interval averages over all days.
 
 ```r
 activityByInterval<- group_by(activity[,-2],interval) %>%summarise(mean(steps[steps>0],na.rm=TRUE))
@@ -153,7 +154,12 @@ maxInterval
 ```
 
 
-## Imputing missing values
+## Imputing missing values  
+First I tried for replace Na's with the function "na.locf" of the zoo package, it replaces a na with a nearest value,  
+which most of the time is a 0, so not good, finally I used the suggested solution from the instruction,  
+replace a NA in a day for a mean of that day. I had some inspiration from slashdot ([link  to slashdot resource ](http://stackoverflow.com/questions/9322773/how-to-replace-na-with-mean-by-subset-in-r-impute-with-plyr)).    
+  
+Eyeballing the figures I couldn't see a difference after replacing the NA, but when calculating the means of the totals of the data frame with NA and from the data frame with NA I could see a slight difference, around 1%.
 
 ```r
 NumberOfNA <- sum(is.na(activity$steps))
@@ -165,22 +171,27 @@ NumberOfNA
 ```
 
 ```r
-activity$steps<-na.locf(activity$steps,na.rm = F,fromLast = F, rule=2)
-activity$steps<-na.locf(activity$steps,na.rm = F,fromLast = T,rule=2)
+# na.locf replaces na with nearest which is 0 most of the time, not good
+# activity$steps<-na.locf(activity$steps,na.rm = F,fromLast = F, rule=2)
+# activity$steps<-na.locf(activity$steps,na.rm = F,fromLast = T,rule=2)
+
+impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+
+activity<- group_by(activity,date) %>%mutate(steps =impute.mean(steps))
 NumberOfNA_afterReplacement <- sum(is.na(activity$steps))
 NumberOfNA_afterReplacement
 ```
 
 ```
-## [1] 0
+## [1] 2592
 ```
 
 ```r
-activityByDayNoNA<- group_by(activity[,c(1:2)],date) %>%summarise(median(steps[steps>0]),
+activityByDayNoNA<- group_by(activity[,c(1:2)],date) %>% summarise(median(steps[steps>0]),
                                                               mean(steps[steps>0]),
                                                               sum(steps))
 
-names(activityByDayNoNA)<-c("date","steps-Mean2","steps-Median2","steps2")
+names(activityByDayNoNA)<-c("date","steps-Median2","steps-Mean2","steps2")
 
 totalStepsaDay <- ggplot(activityByDayNoNA, aes(x=date, weights=steps2)) + 
   geom_bar()+labs(y="total of steps a day")
@@ -198,7 +209,7 @@ print(MeanAndMediumADay)
 ```
 
 ```
-## Warning: Removed 16 rows containing missing values (geom_point).
+## Warning: Removed 18 rows containing missing values (geom_point).
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-5-2.png)
@@ -207,15 +218,17 @@ print(MeanAndMediumADay)
 averages_With_Na_replaced<-summarise_each(activityByDayNoNA[complete.cases(activityByDayNoNA),][,c(-1)],funs(mean))
 averages_With_Na_not_replaced<-summarise_each(activityByDay[complete.cases(activityByDay),][,c(-1)],funs(mean))
 
+#show mean of median per day, mean of mean per day, mean of sum per day for data frame with and without NA
+# clearly the influence is minimal, less than 1%
 averages_With_Na_not_replaced
 ```
 
 ```
 ## Source: local data frame [1 x 3]
 ## 
-##   steps-Mean steps-Median    steps
-##        (dbl)        (dbl)    (dbl)
-## 1    56.5566     129.7411 10766.19
+##   steps-Median steps-Mean    steps
+##          (dbl)      (dbl)    (dbl)
+## 1      56.5566   129.7411 10766.19
 ```
 
 ```r
@@ -225,9 +238,9 @@ averages_With_Na_replaced
 ```
 ## Source: local data frame [1 x 3]
 ## 
-##   steps-Mean2 steps-Median2   steps2
-##         (dbl)         (dbl)    (dbl)
-## 1     56.5566      129.7411 10766.19
+##   steps-Median2 steps-Mean2   steps2
+##           (dbl)       (dbl)    (dbl)
+## 1      56.47115     129.541 10754.92
 ```
 
 
