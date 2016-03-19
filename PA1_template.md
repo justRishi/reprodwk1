@@ -62,18 +62,7 @@ library(reshape2)
 ```
 
 ```r
-library(zoo)
-```
-
-```
-## 
-## Attaching package: 'zoo'
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     as.Date, as.Date.numeric
+#library(zoo)
 ```
 
 
@@ -109,8 +98,10 @@ print(totalStepsaDay)
 ![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)
 
 ```r
+#easy way of plotting two lines into one diagram is by using melt of reshape library
 activityByDay.melt<- melt(activityByDay[,c(1:3)], id.vars="date",variable.name ="Aggregate", value.name="steps")
 
+#plotting mean and median in one diagram
 MeanAndMediumADay <-ggplot(data=activityByDay.melt,aes(date,steps,col=Aggregate)) + geom_point(alpha=0.3) + scale_color_manual(values = c("steps-Mean" = 'red','steps-Median' = 'blue')) 
    
 print(MeanAndMediumADay)
@@ -171,12 +162,10 @@ NumberOfNA
 ```
 
 ```r
-# na.locf replaces na with nearest which is 0 most of the time, not good
-# activity$steps<-na.locf(activity$steps,na.rm = F,fromLast = F, rule=2)
-# activity$steps<-na.locf(activity$steps,na.rm = F,fromLast = T,rule=2)
+# na.locf replaces NA with nearest which is 0 most of the time, not good, changed to manual
 
+#replacing NA with Mean of the day
 impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
-
 activity<- group_by(activity,date) %>%mutate(steps =impute.mean(steps))
 NumberOfNA_afterReplacement <- sum(is.na(activity$steps))
 NumberOfNA_afterReplacement
@@ -187,12 +176,14 @@ NumberOfNA_afterReplacement
 ```
 
 ```r
+#create total a day aggregates with NA replaced
 activityByDayNoNA<- group_by(activity[,c(1:2)],date) %>% summarise(median(steps[steps>0]),
                                                               mean(steps[steps>0]),
                                                               sum(steps))
 
 names(activityByDayNoNA)<-c("date","steps-Median2","steps-Mean2","steps2")
 
+#plotting histogram of data with NA replaced
 totalStepsaDay <- ggplot(activityByDayNoNA, aes(x=date, weights=steps2)) + 
   geom_bar()+labs(y="total of steps a day")
 print(totalStepsaDay)
@@ -201,10 +192,11 @@ print(totalStepsaDay)
 ![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)
 
 ```r
+#easy way of plotting two lines into one diagram is by using melt of reshape library
 activityByDayNoNA.melt<- melt(activityByDayNoNA[,c(1:3)], id.vars="date",variable.name ="Aggregate", value.name="steps2")
 
+#plotting two time lines with NA replaced
 MeanAndMediumADay <-ggplot(data=activityByDayNoNA.melt,aes(date,steps2,col=Aggregate)) + geom_point(alpha=0.3) + scale_color_manual(values = c("steps-Mean2" = 'red','steps-Median2' = 'blue')) 
-   
 print(MeanAndMediumADay)
 ```
 
@@ -215,11 +207,10 @@ print(MeanAndMediumADay)
 ![](PA1_template_files/figure-html/unnamed-chunk-5-2.png)
 
 ```r
-averages_With_Na_replaced<-summarise_each(activityByDayNoNA[complete.cases(activityByDayNoNA),][,c(-1)],funs(mean))
-averages_With_Na_not_replaced<-summarise_each(activityByDay[complete.cases(activityByDay),][,c(-1)],funs(mean))
-
 #show mean of median per day, mean of mean per day, mean of sum per day for data frame with and without NA
 # clearly the influence is minimal, less than 1%
+averages_With_Na_replaced<-summarise_each(activityByDayNoNA[complete.cases(activityByDayNoNA),][,c(-1)],funs(mean))
+averages_With_Na_not_replaced<-summarise_each(activityByDay[complete.cases(activityByDay),][,c(-1)],funs(mean))
 averages_With_Na_not_replaced
 ```
 
@@ -245,3 +236,36 @@ averages_With_Na_replaced
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+See below the two time series of steps during weekdays and steps during weekends,  
+there is more activity(more steps) early in the day during weekdays than during weekends and  
+later in the day there is more activity during weekends than during weekdays.
+
+```r
+#add factor
+isweekend<-ifelse(wday(activity$date) %in% c(7,1),1,0)
+activity$kindOfDay<-factor(isweekend,levels = c(0,1),labels=c("weekday","weekend"))
+
+#create data frame interval over weekdays
+weekdayActivityByInterval <- filter(activity,kindOfDay=="weekday")
+weekdayActivityByInterval<- group_by(weekdayActivityByInterval[,-2],interval) %>%summarise(mean(steps[steps>0],na.rm=TRUE),first(kindOfDay))
+names(weekdayActivityByInterval)<- c("interval", "stepMean","kindOfDay")
+
+#create data frame interval over weekends
+weekendActivityByInterval <- filter(activity,kindOfDay=="weekend")
+weekendActivityByInterval<- group_by(weekendActivityByInterval[,-2],interval) %>%summarise(mean(steps[steps>0],na.rm=TRUE),first(kindOfDay))
+names(weekendActivityByInterval)<- c("interval", "stepMean","kindOfDay")
+
+#merge weekdays and weekends data frames
+weekActivityByInterval <-rbind(weekendActivityByInterval,weekdayActivityByInterval)
+
+#plotting
+dayIntervalMean <- ggplot(data=weekActivityByInterval,aes(x=interval,y=stepMean)) + geom_line()  +
+                  facet_grid(kindOfDay ~ .)
+print(dayIntervalMean)
+```
+
+```
+## Warning: Removed 2 rows containing missing values (geom_path).
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)
