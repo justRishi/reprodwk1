@@ -18,7 +18,7 @@ library(reshape2)
 
 ## Loading and preprocessing the data
 ```{r}
-setwd("C:/Users/R/OneDrive/coursera/reproducibleResearch/week1Assignment")
+#setwd("C:/Users/R/OneDrive/coursera/reproducibleResearch/week1Assignment")
 
 #if(!exists("activity")){
    # unzip("activity.zip")
