@@ -90,9 +90,15 @@ activityByDay<- group_by(activity[,c(1:2)],date) %>%summarise(median(steps[steps
 
 names(activityByDay)<-c("date","steps-Median","steps-Mean","steps")
 
-totalStepsaDay <- ggplot(activityByDay, aes(x=date, weights=steps)) + 
-  geom_bar()+labs(y="total of steps a day")
-print(totalStepsaDay)
+qplot(data=activityByDay, x=steps)
+```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+```
+## Warning: Removed 8 rows containing non-finite values (stat_bin).
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)
@@ -184,9 +190,15 @@ activityByDayNoNA<- group_by(activity[,c(1:2)],date) %>% summarise(median(steps[
 names(activityByDayNoNA)<-c("date","steps-Median2","steps-Mean2","steps2")
 
 #plotting histogram of data with NA replaced
-totalStepsaDay <- ggplot(activityByDayNoNA, aes(x=date, weights=steps2)) + 
-  geom_bar()+labs(y="total of steps a day")
-print(totalStepsaDay)
+qplot(data=activityByDayNoNA, x=steps2)
+```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+```
+## Warning: Removed 9 rows containing non-finite values (stat_bin).
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)
